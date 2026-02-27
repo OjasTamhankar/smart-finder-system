@@ -3,13 +3,17 @@ import {
   Box,
   Typography,
   TextField,
-  Button
+  Button,
+  Card,
+  CardContent,
+  Stack,
+  Divider
 } from "@mui/material";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
-import { useNavigate } from "react-router-dom";
 
-import adminImg from "../assets/adminlogin.svg";
+/* ================= ADMIN LOGIN ================= */
 
 export default function AdminLogin() {
   const [form, setForm] = useState({});
@@ -25,6 +29,8 @@ export default function AdminLogin() {
 
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("role", "admin");
+    localStorage.setItem("name", res.data.name);
+    localStorage.setItem("email", res.data.email);
 
     navigate("/admin-dashboard");
   };
@@ -32,87 +38,73 @@ export default function AdminLogin() {
   return (
     <Box
       sx={{
-        minHeight: "75vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        px: 2
+        width: "100%",
+        maxWidth: 420
       }}
     >
-      {/* CENTERED CONTENT CONTAINER */}
-      <Box
+      <Card
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-          width: "100%",
-          maxWidth: 820,          // same as Login/Register
-          flexDirection: { xs: "column", md: "row" }
+          borderTop: "4px solid #7c3aed" // subtle admin accent
         }}
       >
-        {/* IMAGE */}
-        <Box
-          component="img"
-          src={adminImg}
-          alt="Admin login illustration"
-          sx={{
-            width: 280,
-            height: 280,
-            objectFit: "contain"
-          }}
-        />
-
-        {/* FORM */}
-        <Box
-          sx={{
-            width: 400,
-            display: "flex",
-            flexDirection: "column"
-          }}
-        >
-          <Typography variant="h5" gutterBottom>
-            Admin Login
+        <CardContent sx={{ p: 4 }}>
+          {/* HEADER */}
+          <Typography variant="h5" fontWeight={700} mb={1}>
+            Admin Access
           </Typography>
 
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mb: 3 }}
-          >
-            Administrative access to verify and manage lost item reports
+          <Typography color="text.secondary" mb={3}>
+            Sign in to manage and verify lost item reports
           </Typography>
 
-          <TextField
-            fullWidth
-            label="Email"
-            margin="normal"
-            onChange={e =>
-              setForm({ ...form, email: e.target.value })
-            }
-          />
+          {/* FORM */}
+          <Stack spacing={3}>
+            <TextField
+              label="Admin Email"
+              fullWidth
+              value={form.email || ""}
+              onChange={e =>
+                setForm({ ...form, email: e.target.value })
+              }
+            />
 
-          <TextField
-            fullWidth
-            type="password"
-            label="Password"
-            margin="normal"
-            onChange={e =>
-              setForm({ ...form, password: e.target.value })
-            }
-          />
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              value={form.password || ""}
+              onChange={e =>
+                setForm({ ...form, password: e.target.value })
+              }
+            />
 
-          <Button
-            fullWidth
-            variant="contained"
-            startIcon={<AdminPanelSettingsIcon />}
-            sx={{ mt: 3 }}
-            onClick={submit}
-          >
-            Login as Admin
-          </Button>
-        </Box>
-      </Box>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AdminPanelSettingsIcon />}
+              size="large"
+              onClick={submit}
+            >
+              Login as Admin
+            </Button>
+          </Stack>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Typography variant="body2" align="center">
+            Go back to{" "}
+            <Link
+              to="/"
+              style={{
+                textDecoration: "none",
+                fontWeight: 600
+              }}
+            >
+              Home
+            </Link>
+          </Typography>
+        </CardContent>
+      </Card>
     </Box>
   );
 }

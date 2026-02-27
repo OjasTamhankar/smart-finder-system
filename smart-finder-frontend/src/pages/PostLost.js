@@ -4,11 +4,17 @@ import {
   Typography,
   TextField,
   Button,
-  Stack
+  Stack,
+  Card,
+  CardContent,
+  Divider
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import SendIcon from "@mui/icons-material/Send";
 import api from "../services/api";
 import SuccessMessage from "../ui/SuccessMessage";
+
+/* ================= POST LOST ================= */
 
 export default function PostLost() {
   const [form, setForm] = useState({});
@@ -29,73 +35,78 @@ export default function PostLost() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "75vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }}
-    >
-      <Box sx={{ width: 500 }}>
-        <Typography variant="h5" gutterBottom>
-          Post Lost Item
+    <Box>
+      {/* ================= HEADER ================= */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700}>
+          Report a Lost Item
         </Typography>
-
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 4 }}
-        >
-          Provide details of the lost item to help others identify it
+        <Typography color="text.secondary">
+          Provide accurate details to help others identify your item
         </Typography>
+      </Box>
 
-        <Stack spacing={2}>
-          <TextField
-            label="Item Name"
-            fullWidth
-            value={form.itemName || ""}
-            onChange={e =>
-              setForm({ ...form, itemName: e.target.value })
-            }
-          />
+      {/* ================= FORM CARD ================= */}
+      <Card>
+        <CardContent>
+          {/* SECTION 1 — BASIC DETAILS */}
+          <Typography variant="h6" fontWeight={600} mb={2}>
+            Item Information
+          </Typography>
 
-          <TextField
-            label="Location"
-            fullWidth
-            value={form.location || ""}
-            onChange={e =>
-              setForm({ ...form, location: e.target.value })
-            }
-          />
+          <Stack spacing={3}>
+            <TextField
+              label="Item Name"
+              fullWidth
+              value={form.itemName || ""}
+              onChange={e =>
+                setForm({ ...form, itemName: e.target.value })
+              }
+            />
 
-          <TextField
-            label="Contact Email"
-            fullWidth
-            value={form.contactEmail || ""}
-            onChange={e =>
-              setForm({ ...form, contactEmail: e.target.value })
-            }
-          />
+            <TextField
+              label="Location Where Lost"
+              fullWidth
+              value={form.location || ""}
+              onChange={e =>
+                setForm({ ...form, location: e.target.value })
+              }
+            />
 
-          <TextField
-            label="Description"
-            fullWidth
-            multiline
-            rows={4}
-            value={form.description || ""}
-            onChange={e =>
-              setForm({ ...form, description: e.target.value })
-            }
-          />
+            <TextField
+              label="Contact Email"
+              fullWidth
+              value={form.contactEmail || ""}
+              onChange={e =>
+                setForm({ ...form, contactEmail: e.target.value })
+              }
+            />
 
-          {/* Upload Button */}
+            <TextField
+              label="Detailed Description"
+              fullWidth
+              multiline
+              rows={4}
+              value={form.description || ""}
+              onChange={e =>
+                setForm({ ...form, description: e.target.value })
+              }
+            />
+          </Stack>
+
+          <Divider sx={{ my: 4 }} />
+
+          {/* SECTION 2 — IMAGE UPLOAD */}
+          <Typography variant="h6" fontWeight={600} mb={2}>
+            Upload Image (Optional)
+          </Typography>
+
           <Button
             variant="outlined"
             component="label"
             startIcon={<UploadFileIcon />}
           >
-            Upload Image
+            Select Image
             <input
               hidden
               type="file"
@@ -110,18 +121,17 @@ export default function PostLost() {
             />
           </Button>
 
-          {/* Image Preview */}
           {preview && (
             <Box
               sx={{
-                mt: 2,
+                mt: 3,
+                p: 2,
+                borderRadius: 3,
                 border: "1px solid",
                 borderColor: "divider",
-                borderRadius: 2,
-                p: 2,
+                backgroundColor: "#f9fafb",
                 display: "flex",
-                justifyContent: "center",
-                backgroundColor: "#fff"
+                justifyContent: "center"
               }}
             >
               <img
@@ -136,15 +146,20 @@ export default function PostLost() {
             </Box>
           )}
 
-          <Button
-            variant="contained"
-            sx={{ mt: 2 }}
-            onClick={submit}
-          >
-            Submit Lost Item
-          </Button>
-        </Stack>
-      </Box>
+          <Divider sx={{ my: 4 }} />
+
+          {/* SECTION 3 — SUBMIT */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="contained"
+              startIcon={<SendIcon />}
+              onClick={submit}
+            >
+              Submit Report
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       <SuccessMessage
         show={success}

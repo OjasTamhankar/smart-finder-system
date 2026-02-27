@@ -2,16 +2,25 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Button,
+  Grid,
   Card,
   CardContent,
-  CardMedia
+  CardMedia,
+  Button,
+  TextField,
+  Stack
 } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageUrl";
 
+/* ================= ADMIN DASHBOARD ================= */
+
 export default function AdminDashboard() {
   const [items, setItems] = useState([]);
+  const [search, setSearch] = useState("");
+  const [location, setLocation] = useState("");
 
   const loadItems = async () => {
     const res = await api.get("/admin/pending");
@@ -32,72 +41,171 @@ export default function AdminDashboard() {
     setItems(items.filter(item => item._id !== id));
   };
 
-  return (
-    <Box sx={{ maxWidth: 1100, mx: "auto", px: 2 }}>
-      <Typography variant="h4" sx={{ mb: 4 }}>
-        Admin Dashboard
-      </Typography>
+  const filteredItems = items.filter(item => {
+    const matchesName = item.itemName
+      .toLowerCase()
+      .includes(search.toLowerCase());
 
-      {items.length === 0 && (
-        <Typography color="text.secondary">
-          No pending items.
+    const matchesLocation = item.location
+      .toLowerCase()
+      .includes(location.toLowerCase());
+
+    return matchesName && matchesLocation;
+  });
+
+  return (
+    <Box>
+      {/* ================= PAGE HEADER ================= */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700}>
+          Admin Moderation Panel
         </Typography>
+        <Typography color="text.secondary">
+          Review and verify submitted lost item reports
+        </Typography>
+      </Box>
+
+      {/* ================= STATS ================= */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <StatCard title="Pending Reviews" value={items.length} />
+        <StatCard title="Currently Displayed" value={filteredItems.length} />
+      </Grid>
+
+      {/* ================= FILTER BAR ================= */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" mb={2}>
+            Filter Reports
+          </Typography>
+
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+          >
+            <TextField
+              fullWidth
+              label="Search by item name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <TextField
+              fullWidth
+              label="Filter by location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* ================= EMPTY STATE ================= */}
+      {items.length === 0 && (
+        <Card>
+          <CardContent>
+            <Typography color="text.secondary">
+              No pending items for review.
+            </Typography>
+          </CardContent>
+        </Card>
       )}
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
-          gap: 3
-        }}
-      >
-        {items.map(item => (
-          <Card key={item._id}>
-            {item.imageUrl && (
-              <CardMedia
-                component="img"
-                height="180"
-                image={getImageUrl(item.imageUrl)}
-                alt={item.itemName}
-                sx={{ objectFit: "contain", backgroundColor: "#fafafa" }}
-              />
-            )}
+      {/* ================= ITEMS GRID ================= */}
+      <Grid container spacing={3}>
+        {filteredItems.map(item => (
+          <Grid item xs={12} sm={6} md={4} key={item._id}>
+            <Card
+              sx={{
+                transition: "0.3s",
+                "&:hover": {
+                  transform: "translateY(-4px)"
+                }
+              }}
+            >
+              {item.imageUrl && (
+                <CardMedia
+                  component="img"
+                  height="180"
+                  image={getImageUrl(item.imageUrl)}
+                  alt={item.itemName}
+                  sx={{
+                    objectFit: "contain",
+                    backgroundColor: "#f9fafb"
+                  }}
+                />
+              )}
 
-            <CardContent>
-              <Typography variant="h6">
-                {item.itemName}
-              </Typography>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600}>
+                  {item.itemName}
+                </Typography>
 
-              <Typography color="text.secondary">
-                {item.description}
-              </Typography>
-
-              <Typography sx={{ mt: 1 }}>
-                📍 {item.location}
-              </Typography>
-
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={() => approve(item._id)}
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
                 >
-                  Approve
-                </Button>
+                  {item.description}
+                </Typography>
 
-                <Button
-                  variant="outlined"
-                  size="small"
-                  color="error"
-                  onClick={() => reject(item._id)}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
                 >
-                  Reject
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
+                  📍 {item.location}
+                </Typography>
+
+                {/* ACTION BUTTONS */}
+                <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={() => approve(item._id)}
+                  >
+                    Approve
+                  </Button>
+
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="error"
+                    startIcon={<CancelIcon />}
+                    onClick={() => reject(item._id)}
+                  >
+                    Reject
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </Box>
+      </Grid>
     </Box>
+  );
+}
+
+/* ================= STAT CARD ================= */
+
+function StatCard({ title, value }) {
+  return (
+    <Grid item xs={12} sm={6} md={3}>
+      <Card>
+        <CardContent>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            mb={1}
+          >
+            {title}
+          </Typography>
+
+          <Typography variant="h4" fontWeight={700}>
+            {value}
+          </Typography>
+        </CardContent>
+      </Card>
+    </Grid>
   );
 }

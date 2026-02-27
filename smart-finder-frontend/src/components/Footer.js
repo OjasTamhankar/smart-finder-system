@@ -1,13 +1,20 @@
+import { Box, Typography } from "@mui/material";
+
 export default function Footer() {
   return (
-    <footer style={{
-      marginTop: 48,
-      padding: 16,
-      textAlign: "center",
-      color: "var(--color-muted)",
-      fontSize: 14
-    }}>
-      © 2025 Smart Finder
-    </footer>
+    <Box
+      component="footer"
+      sx={{
+        mt: 6,
+        py: 4,
+        textAlign: "center",
+        borderTop: "1px solid #e5e7eb",
+        backgroundColor: "#ffffff"
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        © {new Date().getFullYear()} Smart Finder — Digital Lost & Found Platform
+      </Typography>
+    </Box>
   );
 }

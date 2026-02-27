@@ -4,12 +4,18 @@ import {
   Typography,
   TextField,
   Button,
-  Stack
+  Stack,
+  Card,
+  CardContent,
+  Divider
 } from "@mui/material";
 import HandshakeIcon from "@mui/icons-material/Handshake";
+import SendIcon from "@mui/icons-material/Send";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import SuccessMessage from "../ui/SuccessMessage";
+
+/* ================= REPORT FOUND ================= */
 
 export default function ReportFound() {
   const { id } = useParams();
@@ -29,64 +35,68 @@ export default function ReportFound() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "75vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }}
-    >
-      <Box sx={{ width: 500 }}>
-        <Typography variant="h5" gutterBottom>
-          Report Found Item
+    <Box>
+      {/* ================= HEADER ================= */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700}>
+          Report a Found Item
         </Typography>
-
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 4 }}
-        >
+        <Typography color="text.secondary">
           Provide your details so the owner can contact you
         </Typography>
-
-        <Stack spacing={2}>
-          <TextField
-            label="Your Name"
-            fullWidth
-            onChange={e =>
-              setForm({ ...form, name: e.target.value })
-            }
-          />
-
-          <TextField
-            label="Contact Details"
-            fullWidth
-            onChange={e =>
-              setForm({ ...form, contact: e.target.value })
-            }
-          />
-
-          <TextField
-            label="Message (optional)"
-            fullWidth
-            multiline
-            rows={4}
-            onChange={e =>
-              setForm({ ...form, message: e.target.value })
-            }
-          />
-
-          <Button
-            variant="contained"
-            startIcon={<HandshakeIcon />}
-            sx={{ mt: 2 }}
-            onClick={submit}
-          >
-            Submit Found Report
-          </Button>
-        </Stack>
       </Box>
+
+      {/* ================= FORM CARD ================= */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" fontWeight={600} mb={2}>
+            Your Contact Details
+          </Typography>
+
+          <Stack spacing={3}>
+            <TextField
+              label="Your Name"
+              fullWidth
+              value={form.name || ""}
+              onChange={e =>
+                setForm({ ...form, name: e.target.value })
+              }
+            />
+
+            <TextField
+              label="Contact Information"
+              fullWidth
+              value={form.contact || ""}
+              onChange={e =>
+                setForm({ ...form, contact: e.target.value })
+              }
+            />
+
+            <TextField
+              label="Message (Optional)"
+              fullWidth
+              multiline
+              rows={4}
+              value={form.message || ""}
+              onChange={e =>
+                setForm({ ...form, message: e.target.value })
+              }
+            />
+          </Stack>
+
+          <Divider sx={{ my: 4 }} />
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="contained"
+              startIcon={<SendIcon />}
+              onClick={submit}
+            >
+              Submit Found Report
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       <SuccessMessage
         show={success}

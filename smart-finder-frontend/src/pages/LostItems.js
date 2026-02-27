@@ -8,13 +8,19 @@ import {
   Button,
   Chip,
   TextField,
-  Stack
+  Stack,
+  CardMedia
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ClearIcon from "@mui/icons-material/Clear";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import ImageLightbox from "../components/ImageLightbox";
 import EmptyState from "../components/EmptyState";
-import { getImageUrl } from "../utils/imageUrl"; // ✅ ADDED
+import { getImageUrl } from "../utils/imageUrl";
+
+/* ================= LOST ITEMS ================= */
 
 export default function LostItems() {
   const [items, setItems] = useState([]);
@@ -40,114 +46,175 @@ export default function LostItems() {
     return matchesName && matchesLocation;
   });
 
+  const clearFilters = () => {
+    setSearch("");
+    setLocation("");
+  };
+
   return (
-    <Box sx={{ px: 4, py: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Lost Items
-      </Typography>
+    <Box>
+      {/* ================= HEADER ================= */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={700}>
+          Browse Lost Items
+        </Typography>
+        <Typography color="text.secondary">
+          Search and explore approved lost item reports
+        </Typography>
+      </Box>
 
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Search and browse approved lost items
-      </Typography>
+      {/* ================= FILTER PANEL ================= */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" mb={2}>
+            Search & Filters
+          </Typography>
 
-      {/* Search & Filter */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 4 }}>
-        <TextField
-          label="Search by item name"
-          fullWidth
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            alignItems="center"
+          >
+            <TextField
+              fullWidth
+              label="Search by item name"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1 }} />
+              }}
+            />
 
-        <TextField
-          label="Filter by location"
-          fullWidth
-          value={location}
-          onChange={e => setLocation(e.target.value)}
-        />
-      </Stack>
+            <TextField
+              fullWidth
+              label="Filter by location"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              InputProps={{
+                startAdornment: <LocationOnIcon sx={{ mr: 1 }} />
+              }}
+            />
 
-      {/* EMPTY STATES */}
+            <Button
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={clearFilters}
+            >
+              Clear
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* ================= RESULT COUNT ================= */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="body2" color="text.secondary">
+          Showing {filteredItems.length} of {items.length} items
+        </Typography>
+      </Box>
+
+      {/* ================= EMPTY STATES ================= */}
       {items.length === 0 && (
         <EmptyState
           title="No lost items available"
-          subtitle="Check back later or post a new lost item"
+          subtitle="Check back later or post a new report"
         />
       )}
 
       {items.length > 0 && filteredItems.length === 0 && (
         <EmptyState
           title="No matching results"
-          subtitle="Try adjusting your search or filter"
+          subtitle="Try adjusting your search criteria"
         />
       )}
 
+      {/* ================= GRID ================= */}
       <Grid container spacing={3}>
         {filteredItems.map(item => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
-            <Card>
+            <Card
+              sx={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                transition: "0.3s",
+                "&:hover": {
+                  transform: "translateY(-6px)"
+                }
+              }}
+            >
               {item.imageUrl && (
-                <Box
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={getImageUrl(item.imageUrl)}
+                  alt={item.itemName}
                   sx={{
-                    height: 220,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderBottom: "1px solid #eee",
+                    objectFit: "contain",
+                    backgroundColor: "#f9fafb",
                     cursor: "pointer"
                   }}
                   onClick={() =>
-                    setLightboxImage(getImageUrl(item.imageUrl)) // ✅ FIX
+                    setLightboxImage(getImageUrl(item.imageUrl))
                   }
-                >
-                  <img
-                    src={getImageUrl(item.imageUrl)}   // ✅ FIX
-                    alt={item.itemName}
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain"
-                    }}
-                  />
-                </Box>
+                />
               )}
 
-              <CardContent>
-                <Typography variant="h6">
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" fontWeight={600}>
                   {item.itemName}
                 </Typography>
 
                 <Chip
                   label={item.status}
                   size="small"
-                  sx={{ my: 1 }}
+                  sx={{
+                    mt: 1,
+                    mb: 2,
+                    backgroundColor:
+                      item.status === "Found"
+                        ? "#dcfce7"
+                        : "#e0e7ff",
+                    color:
+                      item.status === "Found"
+                        ? "#166534"
+                        : "#3730a3"
+                  }}
                 />
 
-                <Typography color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
                   {item.description}
                 </Typography>
 
-                <Typography variant="caption" color="text.secondary">
-                  Location: {item.location}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  📍 {item.location}
                 </Typography>
+              </CardContent>
 
+              <Box sx={{ p: 2 }}>
                 <Button
                   fullWidth
                   variant="contained"
-                  sx={{ mt: 2 }}
                   onClick={() =>
                     navigate(`/report-found/${item._id}`)
                   }
                 >
-                  Found this item
+                  I Found This Item
                 </Button>
-              </CardContent>
+              </Box>
             </Card>
           </Grid>
         ))}
       </Grid>
 
-      {/* Lightbox */}
+      {/* ================= LIGHTBOX ================= */}
       <ImageLightbox
         src={lightboxImage}
         onClose={() => setLightboxImage(null)}
