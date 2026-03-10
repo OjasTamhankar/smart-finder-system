@@ -20,15 +20,29 @@ export default function Login() {
   const navigate = useNavigate();
 
   const submit = async () => {
+  try {
     const res = await api.post("/auth/login", form);
 
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("role", "user");
-    localStorage.setItem("name", res.data.name); // 👈 ADD THIS
-    localStorage.setItem("email", res.data.email); // 👈 ADD THIS
 
     navigate("/dashboard");
-  };
+
+  } catch (error) {
+    console.error("Login error:", error);
+
+    if (error.response) {
+      // Backend responded with 4xx or 5xx
+      alert(error.response.data.message || "Invalid email or password");
+    } else if (error.request) {
+      // No response from server
+      alert("Server not responding. Please try again later.");
+    } else {
+      // Other unexpected error
+      alert("Something went wrong. Please try again.");
+    }
+  }
+};
 
   return (
     <Box

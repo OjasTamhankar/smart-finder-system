@@ -20,9 +20,20 @@ export default function Register() {
   const navigate = useNavigate();
 
   const submit = async () => {
-    await api.post("/auth/register", form);
+  try {
+    const res = await api.post("/auth/register", form);
+
+    alert(res.data.message);
     navigate("/login");
-  };
+
+  } catch (err) {
+    if (err.response && err.response.data.message) {
+      alert(err.response.data.message);
+    } else {
+      alert("Registration failed");
+    }
+  }
+};
 
   return (
     <Box
