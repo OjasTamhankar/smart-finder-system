@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
-  Typography,
-  Grid,
+  Button,
   Card,
   CardContent,
-  Button,
+  CardMedia,
   Chip,
-  TextField,
+  CircularProgress,
+  Grid,
   Stack,
-  CardMedia
+  TextField,
+  Typography
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -19,41 +21,95 @@ import { useNavigate } from "react-router-dom";
 import ImageLightbox from "../components/ImageLightbox";
 import EmptyState from "../components/EmptyState";
 import { getImageUrl } from "../utils/imageUrl";
+import { LOST_ITEM_CATEGORIES } from "../constants/lostItemCategories";
+
+const initialFilters = {
+  search: "",
+  category: "",
+  startDate: "",
+  endDate: "",
+  minReward: "",
+  maxReward: "",
+  location: ""
+};
 
 /* ================= LOST ITEMS ================= */
 
 export default function LostItems() {
   const [items, setItems] = useState([]);
-  const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("");
+  const [filters, setFilters] = useState(initialFilters);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [lightboxImage, setLightboxImage] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/lost").then(res => setItems(res.data));
-  }, []);
+    let isActive = true;
 
-  const filteredItems = items.filter(item => {
-    const matchesName = item.itemName
-      .toLowerCase()
-      .includes(search.toLowerCase());
+    const timer = setTimeout(async () => {
+      try {
+        if (isActive) {
+          setLoading(true);
+        }
 
-    const matchesLocation = item.location
-      .toLowerCase()
-      .includes(location.toLowerCase());
+        const params = Object.entries(filters).reduce(
+          (accumulator, [key, value]) => {
+            if (value !== "") {
+              accumulator[key] = value;
+            }
 
-    return matchesName && matchesLocation;
-  });
+            return accumulator;
+          },
+          {}
+        );
+
+        const response = await api.get("/lost", { params });
+
+        if (!isActive) {
+          return;
+        }
+
+        setItems(response.data);
+        setError("");
+      } catch (requestError) {
+        if (!isActive) {
+          return;
+        }
+
+        setItems([]);
+        setError(
+          requestError.response?.data?.message ||
+            "Failed to load lost items"
+        );
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
+  }, [filters]);
+
+  const updateFilter = (field, value) => {
+    setFilters(currentFilters => ({
+      ...currentFilters,
+      [field]: value
+    }));
+  };
 
   const clearFilters = () => {
-    setSearch("");
-    setLocation("");
+    setFilters(initialFilters);
   };
+
+  const hasActiveFilters = Object.values(filters).some(Boolean);
 
   return (
     <Box>
-      {/* ================= HEADER ================= */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700}>
           Browse Lost Items
@@ -63,158 +119,285 @@ export default function LostItems() {
         </Typography>
       </Box>
 
-      {/* ================= FILTER PANEL ================= */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant="h6" mb={2}>
             Search & Filters
           </Typography>
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            alignItems="center"
-          >
-            <TextField
-              fullWidth
-              label="Search by item name"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1 }} />
-              }}
-            />
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Search item details"
+                value={filters.search}
+                onChange={event =>
+                  updateFilter("search", event.target.value)
+                }
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1 }} />
+                }}
+              />
+            </Grid>
 
-            <TextField
-              fullWidth
-              label="Filter by location"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              InputProps={{
-                startAdornment: <LocationOnIcon sx={{ mr: 1 }} />
-              }}
-            />
+            <Grid item xs={12} md={3}>
+              <TextField
+                select
+                fullWidth
+                label="Category"
+                value={filters.category}
+                onChange={event =>
+                  updateFilter("category", event.target.value)
+                }
+                SelectProps={{ native: true }}
+              >
+                <option value="">All categories</option>
+                {LOST_ITEM_CATEGORIES.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </TextField>
+            </Grid>
 
-            <Button
-              variant="outlined"
-              startIcon={<ClearIcon />}
-              onClick={clearFilters}
-            >
-              Clear
-            </Button>
-          </Stack>
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                label="Location"
+                value={filters.location}
+                onChange={event =>
+                  updateFilter("location", event.target.value)
+                }
+                InputProps={{
+                  startAdornment: <LocationOnIcon sx={{ mr: 1 }} />
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Start Date"
+                type="date"
+                value={filters.startDate}
+                onChange={event =>
+                  updateFilter("startDate", event.target.value)
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="End Date"
+                type="date"
+                value={filters.endDate}
+                onChange={event =>
+                  updateFilter("endDate", event.target.value)
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                label="Min Reward"
+                type="number"
+                value={filters.minReward}
+                onChange={event =>
+                  updateFilter("minReward", event.target.value)
+                }
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                label="Max Reward"
+                type="number"
+                value={filters.maxReward}
+                onChange={event =>
+                  updateFilter("maxReward", event.target.value)
+                }
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={2}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={clearFilters}
+                disabled={!hasActiveFilters}
+                sx={{ height: "100%" }}
+              >
+                Clear
+              </Button>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
-      {/* ================= RESULT COUNT ================= */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="body2" color="text.secondary">
-          Showing {filteredItems.length} of {items.length} items
+          Showing {items.length} matching item
+          {items.length === 1 ? "" : "s"}
         </Typography>
       </Box>
 
-      {/* ================= EMPTY STATES ================= */}
-      {items.length === 0 && (
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {loading && (
+        <Box
+          sx={{
+            py: 6,
+            display: "flex",
+            justifyContent: "center"
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
+
+      {!loading && items.length === 0 && !hasActiveFilters && !error && (
         <EmptyState
           title="No lost items available"
           subtitle="Check back later or post a new report"
         />
       )}
 
-      {items.length > 0 && filteredItems.length === 0 && (
+      {!loading && items.length === 0 && hasActiveFilters && !error && (
         <EmptyState
           title="No matching results"
           subtitle="Try adjusting your search criteria"
         />
       )}
 
-      {/* ================= GRID ================= */}
-      <Grid container spacing={3}>
-        {filteredItems.map(item => (
-          <Grid item xs={12} sm={6} md={4} key={item._id}>
-            <Card
-              sx={{
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                transition: "0.3s",
-                "&:hover": {
-                  transform: "translateY(-6px)"
-                }
-              }}
-            >
-              {item.imageUrl && (
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={getImageUrl(item.imageUrl)}
-                  alt={item.itemName}
-                  sx={{
-                    objectFit: "contain",
-                    backgroundColor: "#f9fafb",
-                    cursor: "pointer"
-                  }}
-                  onClick={() =>
-                    setLightboxImage(getImageUrl(item.imageUrl))
+      {!loading && items.length > 0 && (
+        <Grid container spacing={3}>
+          {items.map(item => (
+            <Grid item xs={12} sm={6} md={4} key={item._id}>
+              <Card
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  transition: "0.3s",
+                  "&:hover": {
+                    transform: "translateY(-6px)"
                   }
-                />
-              )}
+                }}
+              >
+                {item.imageUrl && (
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={getImageUrl(item.imageUrl)}
+                    alt={item.itemName}
+                    sx={{
+                      objectFit: "contain",
+                      backgroundColor: "#f9fafb",
+                      cursor: "pointer"
+                    }}
+                    onClick={() =>
+                      setLightboxImage(getImageUrl(item.imageUrl))
+                    }
+                  />
+                )}
 
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" fontWeight={600}>
-                  {item.itemName}
-                </Typography>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    flexWrap="wrap"
+                    sx={{ mb: 1 }}
+                  >
+                    <Chip
+                      label={item.status}
+                      size="small"
+                      sx={{
+                        backgroundColor:
+                          item.status === "Found"
+                            ? "#dcfce7"
+                            : "#e0e7ff",
+                        color:
+                          item.status === "Found"
+                            ? "#166534"
+                            : "#3730a3"
+                      }}
+                    />
 
-                <Chip
-                  label={item.status}
-                  size="small"
-                  sx={{
-                    mt: 1,
-                    mb: 2,
-                    backgroundColor:
-                      item.status === "Found"
-                        ? "#dcfce7"
-                        : "#e0e7ff",
-                    color:
-                      item.status === "Found"
-                        ? "#166534"
-                        : "#3730a3"
-                  }}
-                />
+                    {item.category && (
+                      <Chip
+                        label={item.category}
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
+                  </Stack>
 
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 2 }}
-                >
-                  {item.description}
-                </Typography>
+                  <Typography variant="h6" fontWeight={600}>
+                    {item.itemName}
+                  </Typography>
 
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  📍 {item.location}
-                </Typography>
-              </CardContent>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1, mb: 2 }}
+                  >
+                    {item.description}
+                  </Typography>
 
-              <Box sx={{ p: 2 }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() =>
-                    navigate(`/report-found/${item._id}`)
-                  }
-                >
-                  I Found This Item
-                </Button>
-              </Box>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                  {item.reward > 0 && (
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      sx={{ mb: 1, color: "success.main" }}
+                    >
+                      Reward offered: {item.reward}
+                    </Typography>
+                  )}
 
-      {/* ================= LIGHTBOX ================= */}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ mb: 0.5 }}
+                  >
+                    Location: {item.location || "Not provided"}
+                  </Typography>
+
+                  <Typography variant="caption" color="text.secondary">
+                    Posted on{" "}
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </Typography>
+                </CardContent>
+
+                <Box sx={{ p: 2 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() =>
+                      navigate(`/report-found/${item._id}`)
+                    }
+                  >
+                    I Found This Item
+                  </Button>
+                </Box>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
       <ImageLightbox
         src={lightboxImage}
         onClose={() => setLightboxImage(null)}

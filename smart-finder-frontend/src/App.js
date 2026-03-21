@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import {
   ThemeProvider,
@@ -5,6 +6,10 @@ import {
   CssBaseline
 } from "@mui/material";
 import { deepmerge } from "@mui/utils";
+import {
+  initializePushNotifications,
+  subscribeToForegroundMessages
+} from "./firebase";
 
 /* ================= LAYOUTS ================= */
 
@@ -95,6 +100,62 @@ const theme = createTheme(
 /* ================= APP ================= */
 
 export default function App() {
+  useEffect(() => {
+    const syncPushNotifications = () => {
+      initializePushNotifications();
+    };
+
+    syncPushNotifications();
+    window.addEventListener("auth:changed", syncPushNotifications);
+
+    return () => {
+      window.removeEventListener(
+        "auth:changed",
+        syncPushNotifications
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    let unsubscribe = () => {};
+    let isMounted = true;
+
+    subscribeToForegroundMessages(payload => {
+      if (
+        typeof window === "undefined" ||
+        !("Notification" in window) ||
+        Notification.permission !== "granted"
+      ) {
+        return;
+      }
+
+      new Notification(
+        payload.notification?.title || "Smart Finder",
+        {
+          body:
+            payload.notification?.body ||
+            "You have a new notification.",
+          icon: "/logo192.png"
+        }
+      );
+    }).then(listener => {
+      if (typeof listener !== "function") {
+        return;
+      }
+
+      if (isMounted) {
+        unsubscribe = listener;
+      } else {
+        listener();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

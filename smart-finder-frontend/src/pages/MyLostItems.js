@@ -35,14 +35,14 @@ export default function MyLostItems() {
     loadItems();
   }, []);
 
-  const openResponses = async (item) => {
+  const openResponses = async item => {
     const res = await api.get(`/found/item/${item._id}`);
     setResponses(res.data);
     setSelectedItem(item);
     setOpenDialog(true);
   };
 
-  const markAsFound = async (id) => {
+  const markAsFound = async id => {
     await api.put(`/lost/found/${id}`);
     setOpenDialog(false);
     loadItems();
@@ -54,7 +54,6 @@ export default function MyLostItems() {
 
   return (
     <Box>
-      {/* ================= HEADER ================= */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700}>
           My Lost Reports
@@ -64,14 +63,12 @@ export default function MyLostItems() {
         </Typography>
       </Box>
 
-      {/* ================= SUMMARY ================= */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <StatCard title="Total Reports" value={total} />
         <StatCard title="Active Reports" value={active} />
         <StatCard title="Items Found" value={found} color="success.main" />
       </Grid>
 
-      {/* ================= EMPTY STATE ================= */}
       {items.length === 0 && (
         <EmptyState
           title="No reports submitted"
@@ -79,7 +76,6 @@ export default function MyLostItems() {
         />
       )}
 
-      {/* ================= GRID ================= */}
       <Grid container spacing={3}>
         {items.map(item => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
@@ -150,8 +146,18 @@ export default function MyLostItems() {
                   {item.description}
                 </Typography>
 
+                {item.reward > 0 && (
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    sx={{ mb: 1, color: "success.main" }}
+                  >
+                    Reward offered: {item.reward}
+                  </Typography>
+                )}
+
                 <Typography variant="caption" color="text.secondary">
-                  📍 {item.location}
+                  Location: {item.location}
                 </Typography>
               </CardContent>
 
@@ -169,7 +175,6 @@ export default function MyLostItems() {
         ))}
       </Grid>
 
-      {/* ================= MODAL ================= */}
       <Dialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
@@ -187,6 +192,16 @@ export default function MyLostItems() {
                 {selectedItem.description}
               </Typography>
 
+              {selectedItem.reward > 0 && (
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                  sx={{ mb: 2, color: "success.main" }}
+                >
+                  Reward offered: {selectedItem.reward}
+                </Typography>
+              )}
+
               <Divider sx={{ my: 2 }} />
 
               <Typography variant="subtitle1" fontWeight={600}>
@@ -199,23 +214,23 @@ export default function MyLostItems() {
                 </Typography>
               )}
 
-              {responses.map((r, i) => (
+              {responses.map((response, index) => (
                 <Card
-                  key={i}
+                  key={index}
                   sx={{ mt: 2, backgroundColor: "#f9fafb" }}
                 >
                   <CardContent>
                     <Typography fontWeight={600}>
-                      {r.name}
+                      {response.name}
                     </Typography>
                     <Typography variant="body2">
-                      Contact: {r.contact}
+                      Contact: {response.contact}
                     </Typography>
                     <Typography
                       variant="body2"
                       color="text.secondary"
                     >
-                      {r.message || "No message provided"}
+                      {response.message || "No message provided"}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -256,8 +271,6 @@ export default function MyLostItems() {
     </Box>
   );
 }
-
-/* ================= STAT CARD ================= */
 
 function StatCard({ title, value, color }) {
   return (

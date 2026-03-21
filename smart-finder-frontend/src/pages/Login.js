@@ -24,7 +24,8 @@ export default function Login() {
     const res = await api.post("/auth/login", form);
 
     localStorage.setItem("token", res.data.token);
-    localStorage.setItem("role", "user");
+    localStorage.setItem("role", res.data.role || "user");
+    window.dispatchEvent(new Event("auth:changed"));
 
     navigate("/dashboard");
 

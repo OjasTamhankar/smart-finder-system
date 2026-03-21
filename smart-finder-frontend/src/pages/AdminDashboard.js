@@ -31,22 +31,22 @@ export default function AdminDashboard() {
     loadItems();
   }, []);
 
-  const approve = async (id) => {
+  const approve = async id => {
     await api.put(`/admin/approve/${id}`);
     setItems(items.filter(item => item._id !== id));
   };
 
-  const reject = async (id) => {
+  const reject = async id => {
     await api.delete(`/admin/reject/${id}`);
     setItems(items.filter(item => item._id !== id));
   };
 
   const filteredItems = items.filter(item => {
-    const matchesName = item.itemName
+    const matchesName = (item.itemName || "")
       .toLowerCase()
       .includes(search.toLowerCase());
 
-    const matchesLocation = item.location
+    const matchesLocation = (item.location || "")
       .toLowerCase()
       .includes(location.toLowerCase());
 
@@ -55,7 +55,6 @@ export default function AdminDashboard() {
 
   return (
     <Box>
-      {/* ================= PAGE HEADER ================= */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700}>
           Admin Moderation Panel
@@ -65,13 +64,11 @@ export default function AdminDashboard() {
         </Typography>
       </Box>
 
-      {/* ================= STATS ================= */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <StatCard title="Pending Reviews" value={items.length} />
         <StatCard title="Currently Displayed" value={filteredItems.length} />
       </Grid>
 
-      {/* ================= FILTER BAR ================= */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant="h6" mb={2}>
@@ -86,20 +83,19 @@ export default function AdminDashboard() {
               fullWidth
               label="Search by item name"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
             />
 
             <TextField
               fullWidth
               label="Filter by location"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={e => setLocation(e.target.value)}
             />
           </Stack>
         </CardContent>
       </Card>
 
-      {/* ================= EMPTY STATE ================= */}
       {items.length === 0 && (
         <Card>
           <CardContent>
@@ -110,7 +106,6 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {/* ================= ITEMS GRID ================= */}
       <Grid container spacing={3}>
         {filteredItems.map(item => (
           <Grid item xs={12} sm={6} md={4} key={item._id}>
@@ -148,14 +143,23 @@ export default function AdminDashboard() {
                   {item.description}
                 </Typography>
 
+                {item.reward > 0 && (
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    sx={{ mb: 1, color: "success.main" }}
+                  >
+                    Reward offered: {item.reward}
+                  </Typography>
+                )}
+
                 <Typography
                   variant="caption"
                   color="text.secondary"
                 >
-                  📍 {item.location}
+                  Location: {item.location}
                 </Typography>
 
-                {/* ACTION BUTTONS */}
                 <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
                   <Button
                     fullWidth
@@ -185,8 +189,6 @@ export default function AdminDashboard() {
     </Box>
   );
 }
-
-/* ================= STAT CARD ================= */
 
 function StatCard({ title, value }) {
   return (

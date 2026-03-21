@@ -1,27 +1,32 @@
 const mongoose = require("mongoose");
 
-const lostItemSchema = new mongoose.Schema(
-  {
-    itemName: { type: String, required: true },
-    description: String,
-    location: String,
-    contactEmail: String,
-    imageUrl: String,
-
-    // 🔐 OWNER OF ITEM
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
-
-    status: {
-      type: String,
-      enum: ["Pending", "Approved", "Recovered"],
-      default: "Pending"
-    }
+const lostItemSchema = new mongoose.Schema({
+  itemName: String,
+  category: {
+    type: String,
+    default: ""
   },
-  { timestamps: true }
-);
+  description: String,
+  location: String,
+  contactEmail: String,
+  imageUrl: String,
+  reward: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  status: {
+    type: String,
+    default: "Pending"
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
 module.exports = mongoose.model("LostItem", lostItemSchema);

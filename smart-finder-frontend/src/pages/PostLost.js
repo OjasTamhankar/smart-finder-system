@@ -13,6 +13,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import SendIcon from "@mui/icons-material/Send";
 import api from "../services/api";
 import SuccessMessage from "../ui/SuccessMessage";
+import { LOST_ITEM_CATEGORIES } from "../constants/lostItemCategories";
 
 /* ================= POST LOST ================= */
 
@@ -22,21 +23,28 @@ export default function PostLost() {
   const [success, setSuccess] = useState(false);
 
   const submit = async () => {
-    const fd = new FormData();
-    Object.keys(form).forEach(key => fd.append(key, form[key]));
+    try {
+      const fd = new FormData();
+      Object.keys(form).forEach(key => fd.append(key, form[key]));
 
-    await api.post("/lost", fd);
+      await api.post("/lost", fd);
 
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 2500);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2500);
 
-    setForm({});
-    setPreview(null);
+      setForm({});
+      setPreview(null);
+      window.dispatchEvent(new Event("notifications:refresh"));
+    } catch (err) {
+      alert(
+        err.response?.data?.message ||
+          "Failed to post lost item"
+      );
+    }
   };
 
   return (
     <Box>
-      {/* ================= HEADER ================= */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700}>
           Report a Lost Item
@@ -46,10 +54,8 @@ export default function PostLost() {
         </Typography>
       </Box>
 
-      {/* ================= FORM CARD ================= */}
       <Card>
         <CardContent>
-          {/* SECTION 1 — BASIC DETAILS */}
           <Typography variant="h6" fontWeight={600} mb={2}>
             Item Information
           </Typography>
@@ -63,6 +69,24 @@ export default function PostLost() {
                 setForm({ ...form, itemName: e.target.value })
               }
             />
+
+            <TextField
+              select
+              label="Category"
+              fullWidth
+              value={form.category || ""}
+              onChange={e =>
+                setForm({ ...form, category: e.target.value })
+              }
+              SelectProps={{ native: true }}
+            >
+              <option value="">Select a category</option>
+              {LOST_ITEM_CATEGORIES.map(category => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </TextField>
 
             <TextField
               label="Location Where Lost"
@@ -83,6 +107,18 @@ export default function PostLost() {
             />
 
             <TextField
+              label="Reward Amount (Optional)"
+              type="number"
+              fullWidth
+              value={form.reward || ""}
+              onChange={e =>
+                setForm({ ...form, reward: e.target.value })
+              }
+              inputProps={{ min: 0 }}
+              helperText="Leave empty if no reward is offered"
+            />
+
+            <TextField
               label="Detailed Description"
               fullWidth
               multiline
@@ -96,7 +132,6 @@ export default function PostLost() {
 
           <Divider sx={{ my: 4 }} />
 
-          {/* SECTION 2 — IMAGE UPLOAD */}
           <Typography variant="h6" fontWeight={600} mb={2}>
             Upload Image (Optional)
           </Typography>
@@ -113,7 +148,10 @@ export default function PostLost() {
               accept="image/*"
               onChange={e => {
                 const file = e.target.files[0];
-                if (!file) return;
+
+                if (!file) {
+                  return;
+                }
 
                 setForm({ ...form, image: file });
                 setPreview(URL.createObjectURL(file));
@@ -148,7 +186,6 @@ export default function PostLost() {
 
           <Divider sx={{ my: 4 }} />
 
-          {/* SECTION 3 — SUBMIT */}
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
               variant="contained"

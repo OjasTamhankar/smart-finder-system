@@ -9,7 +9,6 @@ import {
   CardContent,
   Divider
 } from "@mui/material";
-import HandshakeIcon from "@mui/icons-material/Handshake";
 import SendIcon from "@mui/icons-material/Send";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";

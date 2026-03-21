@@ -8,6 +8,8 @@ const authRoutes = require("./routes/authRoutes");
 const lostRoutes = require("./routes/lostRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const foundRoutes = require("./routes/foundRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -19,8 +21,11 @@ app.use("/uploads", express.static("uploads"));
 // Routes
 app.use("/auth", authRoutes);
 app.use("/lost", lostRoutes);
-app.use("/admin", adminRoutes);   // ✅ THIS WAS MISSING / WRONG
+app.use("/api/lost-items", lostRoutes);
+app.use("/admin", adminRoutes);
 app.use("/found", foundRoutes);
+app.use("/notifications", notificationRoutes);
+app.use("/api/users", userRoutes);
 
 // DB + Server
 mongoose
@@ -33,5 +38,5 @@ mongoose
   })
   .catch(err => console.error(err));
 
- console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS exists:", !!process.env.EMAIL_PASS);

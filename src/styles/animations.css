@@ -1,0 +1,8 @@
+.card {
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.card.removing {
+  opacity: 0;
+  transform: translateY(-8px);
+}
