@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 
 function formatNotificationTime(createdAt) {
@@ -51,6 +52,7 @@ function formatNotificationTime(createdAt) {
 
 export default function Topbar() {
   const role = localStorage.getItem("role");
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,6 +122,30 @@ export default function Topbar() {
     } finally {
       setIsMarkingRead(false);
     }
+  };
+
+  const getNotificationTarget = notification => {
+    if (!notification.itemId || role === "admin") {
+      return null;
+    }
+
+    return `/lost-items?itemId=${notification.itemId}`;
+  };
+
+  const handleNotificationClick = notification => {
+    const target = getNotificationTarget(notification);
+
+    if (!target) {
+      return;
+    }
+
+    setAnchorEl(null);
+    navigate(target, {
+      state: {
+        notificationClickId: `${notification._id}-${Date.now()}`,
+        itemId: notification.itemId
+      }
+    });
   };
 
   return (
@@ -222,13 +248,19 @@ export default function Topbar() {
             </Typography>
           </Box>
         ) : (
-          notifications.map(notification => (
+          notifications.map(notification => {
+            const target = getNotificationTarget(notification);
+
+            return (
             <MenuItem
               key={notification._id}
+              onClick={() => handleNotificationClick(notification)}
+              disabled={!target}
               sx={{
                 whiteSpace: "normal",
                 alignItems: "flex-start",
                 py: 1.5,
+                cursor: target ? "pointer" : "default",
                 backgroundColor: notification.isRead
                   ? "transparent"
                   : "rgba(37, 99, 235, 0.08)"
@@ -273,7 +305,8 @@ export default function Topbar() {
                 </Typography>
               </Box>
             </MenuItem>
-          ))
+            );
+          })
         )}
       </Menu>
     </Box>

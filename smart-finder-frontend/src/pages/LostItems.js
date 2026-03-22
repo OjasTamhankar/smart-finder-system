@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -17,7 +17,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ClearIcon from "@mui/icons-material/Clear";
 import api from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ImageLightbox from "../components/ImageLightbox";
 import EmptyState from "../components/EmptyState";
 import { getImageUrl } from "../utils/imageUrl";
@@ -40,9 +40,28 @@ export default function LostItems() {
   const [filters, setFilters] = useState(initialFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [focusFeedback, setFocusFeedback] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [highlightedItemId, setHighlightedItemId] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const itemRefs = useRef({});
+
+  const requestedItemId =
+    location.state?.itemId ||
+    new URLSearchParams(location.search).get("itemId") ||
+    "";
+
+  useEffect(() => {
+    if (!requestedItemId) {
+      return;
+    }
+
+    setFilters({ ...initialFilters });
+    setHighlightedItemId(requestedItemId);
+    setFocusFeedback(null);
+  }, [requestedItemId, location.state?.notificationClickId]);
 
   useEffect(() => {
     let isActive = true;
@@ -94,6 +113,52 @@ export default function LostItems() {
       clearTimeout(timer);
     };
   }, [filters]);
+
+  useEffect(() => {
+    if (loading || !highlightedItemId) {
+      return undefined;
+    }
+
+    const matchedItem = items.find(
+      item => item._id === highlightedItemId
+    );
+
+    if (!matchedItem) {
+      if (!error) {
+        setFocusFeedback({
+          severity: "warning",
+          message:
+            "That item is not available in the browse list anymore."
+        });
+      }
+
+      setHighlightedItemId("");
+      return undefined;
+    }
+
+    setFocusFeedback({
+      severity: "info",
+      message: `Opened ${matchedItem.itemName} from your notification.`
+    });
+
+    const scrollTimer = window.setTimeout(() => {
+      itemRefs.current[highlightedItemId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }, 150);
+
+    const highlightTimer = window.setTimeout(() => {
+      setHighlightedItemId(currentId =>
+        currentId === matchedItem._id ? "" : currentId
+      );
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(highlightTimer);
+    };
+  }, [error, highlightedItemId, items, loading]);
 
   const updateFilter = (field, value) => {
     setFilters(currentFilters => ({
@@ -255,6 +320,12 @@ export default function LostItems() {
         </Alert>
       )}
 
+      {focusFeedback && !error && (
+        <Alert severity={focusFeedback.severity} sx={{ mb: 3 }}>
+          {focusFeedback.message}
+        </Alert>
+      )}
+
       {loading && (
         <Box
           sx={{
@@ -286,11 +357,26 @@ export default function LostItems() {
           {items.map(item => (
             <Grid item xs={12} sm={6} md={4} key={item._id}>
               <Card
+                ref={node => {
+                  if (node) {
+                    itemRefs.current[item._id] = node;
+                  } else {
+                    delete itemRefs.current[item._id];
+                  }
+                }}
                 sx={{
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
                   transition: "0.3s",
+                  border:
+                    item._id === highlightedItemId
+                      ? "2px solid #2563eb"
+                      : "1px solid transparent",
+                  boxShadow:
+                    item._id === highlightedItemId
+                      ? "0 0 0 4px rgba(37, 99, 235, 0.16)"
+                      : undefined,
                   "&:hover": {
                     transform: "translateY(-6px)"
                   }

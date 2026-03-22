@@ -1,48 +1,12 @@
 const LostItem = require("../models/LostItem");
 const User = require("../models/User");
 const { sendEmail } = require("../utils/emailService");
-const {
-  sendPushNotification
-} = require("../utils/pushNotificationService");
-
-const DEFAULT_FRONTEND_URL =
-  process.env.FRONTEND_URL || "http://localhost:3000";
 
 const escapeRegex = value =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const normalizeUrl = value => value.replace(/\/$/, "");
-
 const buildRewardText = reward =>
   reward > 0 ? `${reward}` : "No reward specified";
-
-const buildLostItemEmailHtml = item => `
-  <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-    <h2 style="margin-bottom: 12px;">New Lost Item Posted</h2>
-    <p>A new lost item has been posted in Smart Finder.</p>
-    <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb;">
-      <p style="margin: 0 0 8px;"><strong>Item Title:</strong> ${item.itemName}</p>
-      ${
-        item.category
-          ? `<p style="margin: 0 0 8px;"><strong>Category:</strong> ${item.category}</p>`
-          : ""
-      }
-      <p style="margin: 0 0 8px;"><strong>Description:</strong> ${item.description || "No description provided"}</p>
-      <p style="margin: 0;"><strong>Reward:</strong> ${buildRewardText(item.reward)}</p>
-    </div>
-  </div>
-`;
-
-const buildLostItemEmailText = item =>
-  [
-    "New Lost Item Posted",
-    `Item Title: ${item.itemName}`,
-    item.category ? `Category: ${item.category}` : null,
-    `Description: ${item.description || "No description provided"}`,
-    `Reward: ${buildRewardText(item.reward)}`
-  ]
-    .filter(Boolean)
-    .join("\n");
 
 const buildFoundStatusEmailHtml = item => `
   <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
@@ -63,18 +27,6 @@ const buildFoundStatusEmailText = item =>
     `Description: ${item.description || "No description provided"}`,
     `Reward: ${buildRewardText(item.reward)}`
   ].join("\n");
-
-const buildPushBody = item => {
-  const description = (item.description || "").trim();
-  const shortenedDescription =
-    description.length > 80
-      ? `${description.slice(0, 77)}...`
-      : description;
-
-  return shortenedDescription
-    ? `${item.itemName} - ${shortenedDescription}`
-    : item.itemName;
-};
 
 // ================= CREATE LOST ITEM =================
 exports.createLostItem = async (req, res) => {
@@ -103,80 +55,30 @@ exports.createLostItem = async (req, res) => {
       status: "Pending"
     });
 
-    await User.updateMany(
-      {},
-      {
-        $push: {
-          notifications: {
-            $each: [
-              {
-                title: "New lost item post",
-                message: `${newItem.itemName} was posted${
-                  newItem.location ? ` near ${newItem.location}` : ""
-                }.`,
-                itemId: newItem._id
-              }
-            ],
-            $position: 0,
-            $slice: 25
-          }
-        }
-      }
-    );
-
     try {
-      const users = await User.find({}).select("email fcmToken");
-      const recipientEmails = [
-        ...new Set(users.map(user => user.email).filter(Boolean))
-      ];
-      const pushTokens = users
-        .map(user => user.fcmToken)
-        .filter(Boolean);
-      const frontendUrl = normalizeUrl(DEFAULT_FRONTEND_URL);
-
-      const emailSubject = `New Lost Item Posted: ${newItem.itemName}`;
-      const emailText = buildLostItemEmailText(newItem);
-      const emailHtml = buildLostItemEmailHtml(newItem);
-
-      if (recipientEmails.length > 0) {
-        const emailResults = await Promise.allSettled(
-          recipientEmails.map(email =>
-            sendEmail(email, emailSubject, emailText, emailHtml)
-          )
-        );
-
-        const failedEmails = emailResults.filter(
-          result => result.status === "rejected"
-        );
-
-        if (failedEmails.length > 0) {
-          console.error(
-            `Failed to send ${failedEmails.length} lost item email notifications`
-          );
-        }
-      }
-
-      if (pushTokens.length > 0) {
-        const pushResult = await sendPushNotification({
-          tokens: pushTokens,
-          title: "New Lost Item Posted",
-          body: buildPushBody(newItem),
-          data: {
-            itemId: newItem._id,
-            link: `${frontendUrl}/lost-items`
+      await User.updateMany(
+        { role: "admin" },
+        {
+          $push: {
+            notifications: {
+              $each: [
+                {
+                  title: "New pending lost item",
+                  message: `${newItem.itemName} was submitted${
+                    newItem.location ? ` near ${newItem.location}` : ""
+                  } and is waiting for approval.`,
+                  itemId: newItem._id
+                }
+              ],
+              $position: 0,
+              $slice: 25
+            }
           }
-        });
-
-        if (pushResult.invalidTokens.length > 0) {
-          await User.updateMany(
-            { fcmToken: { $in: pushResult.invalidTokens } },
-            { $unset: { fcmToken: 1 } }
-          );
         }
-      }
+      );
     } catch (notificationError) {
       console.error(
-        "Lost item was created, but notification delivery failed:",
+        "Lost item was created, but admin notification delivery failed:",
         notificationError
       );
     }
