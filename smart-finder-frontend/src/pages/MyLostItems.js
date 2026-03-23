@@ -152,7 +152,8 @@ export default function MyLostItems() {
                     fontWeight={600}
                     sx={{ mb: 1, color: "success.main" }}
                   >
-                    Reward offered: {item.reward}
+                    Reward offered: {"\u20B9"}
+                    {item.reward}
                   </Typography>
                 )}
 
@@ -198,7 +199,8 @@ export default function MyLostItems() {
                   fontWeight={600}
                   sx={{ mb: 2, color: "success.main" }}
                 >
-                  Reward offered: {selectedItem.reward}
+                  Reward offered: {"\u20B9"}
+                  {selectedItem.reward}
                 </Typography>
               )}
 

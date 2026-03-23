@@ -149,7 +149,8 @@ export default function AdminDashboard() {
                     fontWeight={600}
                     sx={{ mb: 1, color: "success.main" }}
                   >
-                    Reward offered: {item.reward}
+                    Reward offered: {"\u20B9"}
+                    {item.reward}
                   </Typography>
                 )}
 

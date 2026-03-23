@@ -9,6 +9,7 @@ import {
   Chip,
   CircularProgress,
   Grid,
+  InputAdornment,
   Stack,
   TextField,
   Typography
@@ -274,6 +275,13 @@ export default function LostItems() {
                 onChange={event =>
                   updateFilter("minReward", event.target.value)
                 }
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {"\u20B9"}
+                    </InputAdornment>
+                  )
+                }}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -287,6 +295,13 @@ export default function LostItems() {
                 onChange={event =>
                   updateFilter("maxReward", event.target.value)
                 }
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {"\u20B9"}
+                    </InputAdornment>
+                  )
+                }}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -448,7 +463,8 @@ export default function LostItems() {
                       fontWeight={600}
                       sx={{ mb: 1, color: "success.main" }}
                     >
-                      Reward offered: {item.reward}
+                      Reward offered: {"\u20B9"}
+                      {item.reward}
                     </Typography>
                   )}
 

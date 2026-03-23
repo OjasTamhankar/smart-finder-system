@@ -3,6 +3,7 @@ import {
   Box,
   Typography,
   TextField,
+  InputAdornment,
   Button,
   Stack,
   Card,
@@ -80,7 +81,7 @@ export default function PostLost() {
               }
               SelectProps={{ native: true }}
             >
-              <option value="">Select a category</option>
+              <option value="" aria-label="Select category" />
               {LOST_ITEM_CATEGORIES.map(category => (
                 <option key={category} value={category}>
                   {category}
@@ -114,6 +115,13 @@ export default function PostLost() {
               onChange={e =>
                 setForm({ ...form, reward: e.target.value })
               }
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {"\u20B9"}
+                  </InputAdornment>
+                )
+              }}
               inputProps={{ min: 0 }}
               helperText="Leave empty if no reward is offered"
             />
