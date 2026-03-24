@@ -217,7 +217,7 @@ export default function LostItems() {
                 }
                 SelectProps={{ native: true }}
               >
-                <option value="">All categories</option>
+                <option value="" aria-label="All categories" />
                 {LOST_ITEM_CATEGORIES.map(category => (
                   <option key={category} value={category}>
                     {category}
