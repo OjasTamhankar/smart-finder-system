@@ -14,28 +14,37 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import SuccessMessage from "../ui/SuccessMessage";
 
-/* ================= REPORT FOUND ================= */
-
 export default function ReportFound() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({});
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async () => {
-    await api.post(`/found/${id}`, form);
+    try {
+      setIsSubmitting(true);
+      await api.post(`/found/${id}`, form);
 
-    setSuccess(true);
+      setSuccess(true);
 
-    setTimeout(() => {
-      setSuccess(false);
-      navigate("/lost-items");
-    }, 2000);
+      setTimeout(() => {
+        setSuccess(false);
+        navigate("/lost-items");
+      }, 2000);
+    } catch (error) {
+      console.error("Found report submission failed:", error);
+      alert(
+        error.response?.data?.message ||
+          "Unable to submit the found report right now."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Box>
-      {/* ================= HEADER ================= */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700}>
           Report a Found Item
@@ -45,7 +54,6 @@ export default function ReportFound() {
         </Typography>
       </Box>
 
-      {/* ================= FORM CARD ================= */}
       <Card>
         <CardContent>
           <Typography variant="h6" fontWeight={600} mb={2}>
@@ -90,8 +98,9 @@ export default function ReportFound() {
               variant="contained"
               startIcon={<SendIcon />}
               onClick={submit}
+              disabled={isSubmitting}
             >
-              Submit Found Report
+              {isSubmitting ? "Submitting..." : "Submit Found Report"}
             </Button>
           </Box>
         </CardContent>

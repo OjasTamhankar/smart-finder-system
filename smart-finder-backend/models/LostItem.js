@@ -1,15 +1,40 @@
 const mongoose = require("mongoose");
 
 const lostItemSchema = new mongoose.Schema({
-  itemName: String,
+  itemName: {
+    type: String,
+    trim: true,
+    required: true,
+    maxlength: 150
+  },
   category: {
     type: String,
-    default: ""
+    default: "",
+    trim: true,
+    maxlength: 80
   },
-  description: String,
-  location: String,
-  contactEmail: String,
-  imageUrl: String,
+  description: {
+    type: String,
+    trim: true,
+    default: "",
+    maxlength: 4000
+  },
+  location: {
+    type: String,
+    trim: true,
+    required: true,
+    maxlength: 255
+  },
+  contactEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    required: true
+  },
+  imageUrl: {
+    type: String,
+    default: null
+  },
   reward: {
     type: Number,
     default: 0,
@@ -17,11 +42,13 @@ const lostItemSchema = new mongoose.Schema({
   },
   status: {
     type: String,
+    enum: ["Pending", "Approved", "Found"],
     default: "Pending"
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    required: true
   },
   createdAt: {
     type: Date,

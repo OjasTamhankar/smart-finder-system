@@ -121,6 +121,8 @@ export default function App() {
     let isMounted = true;
 
     subscribeToForegroundMessages(payload => {
+      window.dispatchEvent(new Event("notifications:refresh"));
+
       if (
         typeof window === "undefined" ||
         !("Notification" in window) ||

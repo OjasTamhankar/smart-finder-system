@@ -13,37 +13,33 @@ import LoginIcon from "@mui/icons-material/Login";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 
-/* ================= LOGIN ================= */
-
 export default function Login() {
   const [form, setForm] = useState({});
   const navigate = useNavigate();
 
   const submit = async () => {
-  try {
-    const res = await api.post("/auth/login", form);
+    try {
+      const res = await api.post("/auth/login", form);
 
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("role", res.data.role || "user");
-    window.dispatchEvent(new Event("auth:changed"));
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role || "user");
+      localStorage.setItem("name", res.data.name || "");
+      localStorage.setItem("email", res.data.email || "");
+      window.dispatchEvent(new Event("auth:changed"));
 
-    navigate("/dashboard");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
 
-  } catch (error) {
-    console.error("Login error:", error);
-
-    if (error.response) {
-      // Backend responded with 4xx or 5xx
-      alert(error.response.data.message || "Invalid email or password");
-    } else if (error.request) {
-      // No response from server
-      alert("Server not responding. Please try again later.");
-    } else {
-      // Other unexpected error
-      alert("Something went wrong. Please try again.");
+      if (error.response) {
+        alert(error.response.data.message || "Invalid email or password");
+      } else if (error.request) {
+        alert("Server not responding. Please try again later.");
+      } else {
+        alert("Something went wrong. Please try again.");
+      }
     }
-  }
-};
+  };
 
   return (
     <Box
@@ -54,7 +50,6 @@ export default function Login() {
     >
       <Card>
         <CardContent sx={{ p: 4 }}>
-          {/* HEADER */}
           <Typography variant="h5" fontWeight={700} mb={1}>
             Welcome Back
           </Typography>
@@ -63,7 +58,6 @@ export default function Login() {
             Sign in to manage your lost items
           </Typography>
 
-          {/* FORM */}
           <Stack spacing={3}>
             <TextField
               label="Email"
@@ -96,9 +90,8 @@ export default function Login() {
 
           <Divider sx={{ my: 3 }} />
 
-          {/* REGISTER LINK */}
           <Typography variant="body2" align="center">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <Link
               to="/register"
               style={{

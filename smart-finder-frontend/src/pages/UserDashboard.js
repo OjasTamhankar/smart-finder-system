@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Typography,
   Grid,
@@ -15,16 +16,40 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-/* ================= DASHBOARD ================= */
-
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/lost/mine").then(res => {
-      setItems(res.data);
-    });
+    let isActive = true;
+
+    api
+      .get("/lost/mine")
+      .then(res => {
+        if (!isActive) {
+          return;
+        }
+
+        setItems(res.data);
+        setError("");
+      })
+      .catch(loadError => {
+        console.error("Failed to load dashboard items:", loadError);
+
+        if (!isActive) {
+          return;
+        }
+
+        setError(
+          loadError.response?.data?.message ||
+            "Failed to load your dashboard"
+        );
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const total = items.length;
@@ -35,25 +60,32 @@ export default function UserDashboard() {
 
   return (
     <Box>
-      {/* ================= PAGE HEADER ================= */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={700}>
-          Welcome Back 👋
+          Welcome Back
         </Typography>
         <Typography color="text.secondary">
-          Here’s an overview of your lost item activity
+          Here's an overview of your lost item activity
         </Typography>
       </Box>
 
-      {/* ================= STATS CARDS ================= */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <StatCard title="Total Reports" value={total} />
         <StatCard title="Items Found" value={found} color="success.main" />
         <StatCard title="Active Reports" value={active} color="warning.main" />
-        <StatCard title="Success Rate" value={`${successRate}%`} color="primary.main" />
+        <StatCard
+          title="Success Rate"
+          value={`${successRate}%`}
+          color="primary.main"
+        />
       </Grid>
 
-      {/* ================= QUICK ACTIONS ================= */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -91,7 +123,6 @@ export default function UserDashboard() {
           </Card>
         </Grid>
 
-        {/* ================= RECENT ACTIVITY ================= */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
@@ -144,8 +175,6 @@ export default function UserDashboard() {
     </Box>
   );
 }
-
-/* ================= STAT CARD ================= */
 
 function StatCard({ title, value, color }) {
   return (

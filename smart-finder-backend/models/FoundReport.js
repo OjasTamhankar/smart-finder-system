@@ -7,9 +7,29 @@ const foundReportSchema = new mongoose.Schema(
       ref: "LostItem",
       required: true
     },
-    name: String,
-    contact: String,
-    message: String
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+    name: {
+      type: String,
+      trim: true,
+      required: true,
+      maxlength: 120
+    },
+    contact: {
+      type: String,
+      trim: true,
+      required: true,
+      maxlength: 255
+    },
+    message: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 2000
+    }
   },
   { timestamps: true }
 );

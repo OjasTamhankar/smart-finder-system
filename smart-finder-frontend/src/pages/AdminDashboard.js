@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Typography,
   Grid,
@@ -15,16 +16,24 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import api from "../services/api";
 import { getImageUrl } from "../utils/imageUrl";
 
-/* ================= ADMIN DASHBOARD ================= */
-
 export default function AdminDashboard() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
+  const [error, setError] = useState("");
 
   const loadItems = async () => {
-    const res = await api.get("/admin/pending");
-    setItems(res.data);
+    try {
+      const res = await api.get("/admin/pending");
+      setItems(res.data);
+      setError("");
+    } catch (loadError) {
+      console.error("Failed to load pending items:", loadError);
+      setError(
+        loadError.response?.data?.message ||
+          "Failed to load pending items"
+      );
+    }
   };
 
   useEffect(() => {
@@ -32,13 +41,33 @@ export default function AdminDashboard() {
   }, []);
 
   const approve = async id => {
-    await api.put(`/admin/approve/${id}`);
-    setItems(items.filter(item => item._id !== id));
+    try {
+      await api.put(`/admin/approve/${id}`);
+      setItems(currentItems =>
+        currentItems.filter(item => item._id !== id)
+      );
+    } catch (actionError) {
+      console.error("Approval failed:", actionError);
+      alert(
+        actionError.response?.data?.message ||
+          "Unable to approve this item."
+      );
+    }
   };
 
   const reject = async id => {
-    await api.delete(`/admin/reject/${id}`);
-    setItems(items.filter(item => item._id !== id));
+    try {
+      await api.delete(`/admin/reject/${id}`);
+      setItems(currentItems =>
+        currentItems.filter(item => item._id !== id)
+      );
+    } catch (actionError) {
+      console.error("Rejection failed:", actionError);
+      alert(
+        actionError.response?.data?.message ||
+          "Unable to reject this item."
+      );
+    }
   };
 
   const filteredItems = items.filter(item => {
@@ -63,6 +92,12 @@ export default function AdminDashboard() {
           Review and verify submitted lost item reports
         </Typography>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <StatCard title="Pending Reviews" value={items.length} />

@@ -1,18 +1,17 @@
 const express = require("express");
 const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
+const adminMiddleware = require("../middleware/adminMiddleware");
 const {
   getPendingItems,
   approveItem,
   rejectItem
 } = require("../controllers/adminController");
 
-// Get all pending lost items
+router.use(authMiddleware, adminMiddleware);
+
 router.get("/pending", getPendingItems);
-
-// Approve lost item
 router.put("/approve/:id", approveItem);
-
-// Reject lost item
 router.delete("/reject/:id", rejectItem);
 
 module.exports = router;

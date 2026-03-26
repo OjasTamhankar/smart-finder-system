@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Typography,
   Grid,
@@ -18,17 +19,26 @@ import ImageLightbox from "../components/ImageLightbox";
 import EmptyState from "../components/EmptyState";
 import { getImageUrl } from "../utils/imageUrl";
 
-/* ================= MY LOST ITEMS ================= */
-
 export default function MyLostItems() {
   const [items, setItems] = useState([]);
   const [responses, setResponses] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [error, setError] = useState("");
 
-  const loadItems = () => {
-    api.get("/lost/mine").then(res => setItems(res.data));
+  const loadItems = async () => {
+    try {
+      const res = await api.get("/lost/mine");
+      setItems(res.data);
+      setError("");
+    } catch (loadError) {
+      console.error("Failed to load your items:", loadError);
+      setError(
+        loadError.response?.data?.message ||
+          "Failed to load your reports"
+      );
+    }
   };
 
   useEffect(() => {
@@ -36,16 +46,32 @@ export default function MyLostItems() {
   }, []);
 
   const openResponses = async item => {
-    const res = await api.get(`/found/item/${item._id}`);
-    setResponses(res.data);
-    setSelectedItem(item);
-    setOpenDialog(true);
+    try {
+      const res = await api.get(`/found/item/${item._id}`);
+      setResponses(res.data);
+      setSelectedItem(item);
+      setOpenDialog(true);
+    } catch (loadError) {
+      console.error("Failed to load responses:", loadError);
+      alert(
+        loadError.response?.data?.message ||
+          "Unable to load responses for this item."
+      );
+    }
   };
 
   const markAsFound = async id => {
-    await api.put(`/lost/found/${id}`);
-    setOpenDialog(false);
-    loadItems();
+    try {
+      await api.put(`/lost/found/${id}`);
+      setOpenDialog(false);
+      loadItems();
+    } catch (actionError) {
+      console.error("Failed to mark item as found:", actionError);
+      alert(
+        actionError.response?.data?.message ||
+          "Unable to update this item."
+      );
+    }
   };
 
   const total = items.length;
@@ -63,13 +89,19 @@ export default function MyLostItems() {
         </Typography>
       </Box>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <StatCard title="Total Reports" value={total} />
         <StatCard title="Active Reports" value={active} />
         <StatCard title="Items Found" value={found} color="success.main" />
       </Grid>
 
-      {items.length === 0 && (
+      {items.length === 0 && !error && (
         <EmptyState
           title="No reports submitted"
           subtitle="You haven't posted any lost items yet"
@@ -216,9 +248,9 @@ export default function MyLostItems() {
                 </Typography>
               )}
 
-              {responses.map((response, index) => (
+              {responses.map(response => (
                 <Card
-                  key={index}
+                  key={response._id}
                   sx={{ mt: 2, backgroundColor: "#f9fafb" }}
                 >
                   <CardContent>

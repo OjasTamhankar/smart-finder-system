@@ -1,9 +1,14 @@
 const LostItem = require("../models/LostItem");
+const FoundReport = require("../models/FoundReport");
 const User = require("../models/User");
 const { sendEmail } = require("../utils/emailService");
 const {
   sendPushNotification
 } = require("../utils/pushNotificationService");
+const {
+  escapeHtml,
+  isValidObjectId
+} = require("../utils/validation");
 
 const DEFAULT_FRONTEND_URL =
   process.env.FRONTEND_URL || "http://localhost:3000";
@@ -18,13 +23,13 @@ const buildApprovedItemEmailHtml = item => `
     <h2 style="margin-bottom: 12px;">New Approved Lost Item</h2>
     <p>An item has been approved by the admin and is now visible in Smart Finder.</p>
     <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb;">
-      <p style="margin: 0 0 8px;"><strong>Item Title:</strong> ${item.itemName}</p>
+      <p style="margin: 0 0 8px;"><strong>Item Title:</strong> ${escapeHtml(item.itemName)}</p>
       ${
         item.category
-          ? `<p style="margin: 0 0 8px;"><strong>Category:</strong> ${item.category}</p>`
+          ? `<p style="margin: 0 0 8px;"><strong>Category:</strong> ${escapeHtml(item.category)}</p>`
           : ""
       }
-      <p style="margin: 0 0 8px;"><strong>Description:</strong> ${item.description || "No description provided"}</p>
+      <p style="margin: 0 0 8px;"><strong>Description:</strong> ${escapeHtml(item.description || "No description provided")}</p>
       <p style="margin: 0;"><strong>Reward:</strong> ${buildRewardText(item.reward)}</p>
     </div>
   </div>
@@ -57,23 +62,32 @@ const buildPushBody = item => {
 // GET ALL PENDING LOST ITEMS
 exports.getPendingItems = async (req, res) => {
   try {
-    const items = await LostItem.find({ status: "Pending" });
-    res.json(items);
+    const items = await LostItem.find({ status: "Pending" }).sort({
+      createdAt: -1
+    });
+    return res.json(items);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch pending items" });
+    console.error(err);
+    return res.status(500).json({
+      message: "Failed to fetch pending items"
+    });
   }
 };
 
 // APPROVE LOST ITEM
 exports.approveItem = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid item id" });
+    }
+
     const item = await LostItem.findOneAndUpdate(
       {
         _id: req.params.id,
         status: "Pending"
       },
       { status: "Approved" },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!item) {
@@ -83,10 +97,12 @@ exports.approveItem = async (req, res) => {
     }
 
     try {
-      const users = await User.find({}).select("email fcmToken");
+      const users = await User.find({ role: "user" }).select(
+        "email fcmToken"
+      );
 
       await User.updateMany(
-        {},
+        { role: "user" },
         {
           $push: {
             notifications: {
@@ -140,7 +156,7 @@ exports.approveItem = async (req, res) => {
           title: "New Approved Lost Item",
           body: buildPushBody(item),
           data: {
-            itemId: item._id,
+            itemId: item._id.toString(),
             link: `${frontendUrl}/lost-items`
           }
         });
@@ -159,19 +175,36 @@ exports.approveItem = async (req, res) => {
       );
     }
 
-    res.json({ message: "Item approved" });
+    return res.json({ message: "Item approved" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Approval failed" });
+    return res.status(500).json({ message: "Approval failed" });
   }
 };
 
 // REJECT LOST ITEM
 exports.rejectItem = async (req, res) => {
   try {
-    await LostItem.findByIdAndDelete(req.params.id);
-    res.json({ message: "Item rejected" });
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid item id" });
+    }
+
+    const item = await LostItem.findOneAndDelete({
+      _id: req.params.id,
+      status: "Pending"
+    });
+
+    if (!item) {
+      return res.status(404).json({
+        message: "Pending item not found"
+      });
+    }
+
+    await FoundReport.deleteMany({ lostItemId: item._id });
+
+    return res.json({ message: "Item rejected" });
   } catch (err) {
-    res.status(500).json({ message: "Rejection failed" });
+    console.error(err);
+    return res.status(500).json({ message: "Rejection failed" });
   }
 };

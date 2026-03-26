@@ -8,14 +8,10 @@ const {
 } = require("../controllers/foundController");
 
 const authMiddleware = require("../middleware/authMiddleware");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
-// Submit found report
-router.post("/:id", createFoundReport);
-
-// Admin: view all found reports
-router.get("/", authMiddleware, getAllFoundReports);
-
-// User: view responses for a lost item
+router.post("/:id", authMiddleware, createFoundReport);
+router.get("/", authMiddleware, adminMiddleware, getAllFoundReports);
 router.get("/item/:id", authMiddleware, getReportsForLostItem);
 
 module.exports = router;

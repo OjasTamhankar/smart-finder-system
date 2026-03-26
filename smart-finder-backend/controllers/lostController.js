@@ -1,6 +1,13 @@
 const LostItem = require("../models/LostItem");
 const User = require("../models/User");
 const { sendEmail } = require("../utils/emailService");
+const {
+  escapeHtml,
+  normalizeEmail,
+  normalizeString,
+  isValidEmail,
+  isValidObjectId
+} = require("../utils/validation");
 
 const escapeRegex = value =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -13,8 +20,8 @@ const buildFoundStatusEmailHtml = item => `
     <h2 style="margin-bottom: 12px;">Lost Item Marked as Found</h2>
     <p>Your lost item status has been updated to <strong>Found</strong>.</p>
     <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #f9fafb;">
-      <p style="margin: 0 0 8px;"><strong>Item Title:</strong> ${item.itemName}</p>
-      <p style="margin: 0 0 8px;"><strong>Description:</strong> ${item.description || "No description provided"}</p>
+      <p style="margin: 0 0 8px;"><strong>Item Title:</strong> ${escapeHtml(item.itemName)}</p>
+      <p style="margin: 0 0 8px;"><strong>Description:</strong> ${escapeHtml(item.description || "No description provided")}</p>
       <p style="margin: 0;"><strong>Reward:</strong> ${buildRewardText(item.reward)}</p>
     </div>
   </div>
@@ -28,14 +35,36 @@ const buildFoundStatusEmailText = item =>
     `Reward: ${buildRewardText(item.reward)}`
   ].join("\n");
 
-// ================= CREATE LOST ITEM =================
+// CREATE LOST ITEM
 exports.createLostItem = async (req, res) => {
   try {
+    const itemName = normalizeString(req.body.itemName);
+    const description = normalizeString(req.body.description);
+    const location = normalizeString(req.body.location);
     const reward = Number(req.body.reward || 0);
-    const category =
-      typeof req.body.category === "string"
-        ? req.body.category.trim()
-        : "";
+    const category = normalizeString(req.body.category);
+    const owner = await User.findById(req.user.id).select("email");
+    const contactEmail = normalizeEmail(
+      req.body.contactEmail || owner?.email
+    );
+
+    if (!owner) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!itemName) {
+      return res.status(400).json({ message: "Item name is required" });
+    }
+
+    if (!location) {
+      return res.status(400).json({ message: "Location is required" });
+    }
+
+    if (!isValidEmail(contactEmail)) {
+      return res.status(400).json({
+        message: "A valid contact email is required"
+      });
+    }
 
     if (Number.isNaN(reward) || reward < 0) {
       return res.status(400).json({
@@ -44,11 +73,11 @@ exports.createLostItem = async (req, res) => {
     }
 
     const newItem = await LostItem.create({
-      itemName: req.body.itemName,
+      itemName,
       category,
-      description: req.body.description,
-      location: req.body.location,
-      contactEmail: req.body.contactEmail,
+      description,
+      location,
+      contactEmail,
       imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
       reward,
       createdBy: req.user.id,
@@ -83,14 +112,19 @@ exports.createLostItem = async (req, res) => {
       );
     }
 
-    res.status(201).json(newItem);
+    return res.status(201).json(newItem);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to create lost item" });
+
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ message: err.message });
+    }
+
+    return res.status(500).json({ message: "Failed to create lost item" });
   }
 };
 
-// ================= GET APPROVED LOST ITEMS =================
+// GET APPROVED LOST ITEMS
 exports.getApprovedLostItems = async (req, res) => {
   try {
     const {
@@ -139,6 +173,16 @@ exports.getApprovedLostItems = async (req, res) => {
         createdAtFilter.$lte = parsedEndDate;
       }
 
+      if (
+        createdAtFilter.$gte &&
+        createdAtFilter.$lte &&
+        createdAtFilter.$gte > createdAtFilter.$lte
+      ) {
+        return res.status(400).json({
+          message: "startDate cannot be later than endDate"
+        });
+      }
+
       query.createdAt = createdAtFilter;
     }
 
@@ -167,6 +211,16 @@ exports.getApprovedLostItems = async (req, res) => {
         }
 
         rewardFilter.$lte = maximumReward;
+      }
+
+      if (
+        rewardFilter.$gte !== undefined &&
+        rewardFilter.$lte !== undefined &&
+        rewardFilter.$gte > rewardFilter.$lte
+      ) {
+        return res.status(400).json({
+          message: "minReward cannot be greater than maxReward"
+        });
       }
 
       query.reward = rewardFilter;
@@ -202,48 +256,49 @@ exports.getApprovedLostItems = async (req, res) => {
 
     const items = await LostItem.find(query).sort({ createdAt: -1 });
 
-    res.json(items);
+    return res.json(items);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to fetch lost items" });
+    return res.status(500).json({ message: "Failed to fetch lost items" });
   }
 };
 
-// ================= GET MY LOST ITEMS =================
+// GET MY LOST ITEMS
 exports.getMyLostItems = async (req, res) => {
   try {
     const items = await LostItem.find({
-      $or: [
-        { createdBy: req.user.id },
-        { userId: req.user.id }
-      ]
+      $or: [{ createdBy: req.user.id }, { userId: req.user.id }]
     }).sort({ createdAt: -1 });
 
-    res.json(items);
+    return res.json(items);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to fetch user items" });
+    return res.status(500).json({ message: "Failed to fetch user items" });
   }
 };
 
-// ================= MARK ITEM AS FOUND =================
+// MARK ITEM AS FOUND
 exports.markItemAsFound = async (req, res) => {
   try {
-    const item = await LostItem.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        $or: [
-          { createdBy: req.user.id },
-          { userId: req.user.id }
-        ]
-      },
-      { status: "Found" },
-      { new: true }
-    );
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid item id" });
+    }
+
+    const item = await LostItem.findOne({
+      _id: req.params.id,
+      $or: [{ createdBy: req.user.id }, { userId: req.user.id }]
+    });
 
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
+
+    if (item.status === "Found") {
+      return res.json({ message: "Item is already marked as found" });
+    }
+
+    item.status = "Found";
+    await item.save();
 
     try {
       const owner = await User.findById(item.createdBy).select("email");
@@ -264,9 +319,9 @@ exports.markItemAsFound = async (req, res) => {
       );
     }
 
-    res.json({ message: "Item marked as found" });
+    return res.json({ message: "Item marked as found" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to update item" });
+    return res.status(500).json({ message: "Failed to update item" });
   }
 };

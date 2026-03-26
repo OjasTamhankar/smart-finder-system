@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import {
+  deleteToken,
   getMessaging,
   getToken,
   isSupported,
@@ -31,6 +32,20 @@ const firebaseApp = hasFirebaseConfig
   : null;
 
 let messagingInstance = null;
+
+const getStoredAuthToken = () =>
+  typeof window === "undefined"
+    ? null
+    : localStorage.getItem("token");
+
+const clearLocalPushTokenCache = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.removeItem("fcmToken");
+  localStorage.removeItem("savedFcmToken");
+};
 
 const buildServiceWorkerUrl = () => {
   const params = new URLSearchParams();
@@ -74,12 +89,34 @@ const registerMessagingServiceWorker = async () => {
   return navigator.serviceWorker.register(buildServiceWorkerUrl());
 };
 
+const clearPushTokenOnServer = async () => {
+  if (!getStoredAuthToken()) {
+    clearLocalPushTokenCache();
+    return;
+  }
+
+  try {
+    await api.post("/api/users/save-fcm-token", {
+      fcmToken: ""
+    });
+  } catch (error) {
+    console.error("Failed to clear stored push token:", error);
+  } finally {
+    clearLocalPushTokenCache();
+  }
+};
+
 const requestFcmToken = async () => {
   if (
+    !getStoredAuthToken() ||
     !hasFirebaseConfig ||
     typeof window === "undefined" ||
     !("Notification" in window)
   ) {
+    return null;
+  }
+
+  if (Notification.permission === "denied") {
     return null;
   }
 
@@ -106,20 +143,39 @@ const requestFcmToken = async () => {
   });
 };
 
+export const clearStoredPushNotificationToken = async () => {
+  try {
+    const messaging = await getMessagingInstance();
+
+    if (messaging) {
+      await deleteToken(messaging).catch(error => {
+        console.error("Failed to delete browser push token:", error);
+      });
+    }
+  } finally {
+    await clearPushTokenOnServer();
+  }
+};
+
 export const initializePushNotifications = async () => {
   try {
+    if (!getStoredAuthToken()) {
+      clearLocalPushTokenCache();
+      return null;
+    }
+
     const fcmToken = await requestFcmToken();
 
     if (!fcmToken) {
+      await clearPushTokenOnServer();
       return null;
     }
 
     localStorage.setItem("fcmToken", fcmToken);
 
-    const authToken = localStorage.getItem("token");
     const savedFcmToken = localStorage.getItem("savedFcmToken");
 
-    if (!authToken || savedFcmToken === fcmToken) {
+    if (savedFcmToken === fcmToken) {
       return fcmToken;
     }
 

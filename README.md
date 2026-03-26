@@ -17,6 +17,8 @@ npm install
 npm start
 ```
 
+Create `smart-finder-frontend/.env` from `smart-finder-frontend/.env.example` if you want configurable API URLs or Firebase Web Push support.
+
 ### Backend
 
 ```bash
@@ -28,6 +30,15 @@ npm start
 Create `smart-finder-backend/.env` from `smart-finder-backend/.env.example` before starting the backend.
 
 The backend expects MongoDB, Cloudinary, email, and optional Firebase configuration through environment variables.
+
+## Push Notifications
+
+Push notifications require configuration on both apps:
+
+- Frontend: Firebase web app keys and `REACT_APP_FIREBASE_VAPID_KEY`
+- Backend: Firebase Admin credentials through `FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_SERVICE_ACCOUNT_PATH`, or the `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` trio
+
+If backend Firebase Admin credentials are missing, the API will still run but server-side push delivery stays disabled until those values are provided.
 
 ## Repository Notes
 

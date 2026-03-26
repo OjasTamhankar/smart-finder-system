@@ -1,8 +1,8 @@
 importScripts(
-  "https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"
+  "https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"
 );
 importScripts(
-  "https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging-compat.js"
+  "https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging-compat.js"
 );
 
 const searchParams = new URL(self.location.href).searchParams;
@@ -22,7 +22,9 @@ const hasFirebaseConfig =
   firebaseConfig.appId;
 
 if (hasFirebaseConfig) {
-  firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
 
   const messaging = firebase.messaging();
 

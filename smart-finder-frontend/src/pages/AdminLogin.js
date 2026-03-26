@@ -13,26 +13,33 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 
-/* ================= ADMIN LOGIN ================= */
-
 export default function AdminLogin() {
   const [form, setForm] = useState({});
   const navigate = useNavigate();
 
   const submit = async () => {
-    const res = await api.post("/auth/login", form);
+    try {
+      const res = await api.post("/auth/login", form);
 
-    if (res.data.role !== "admin") {
-      alert("Unauthorized access");
-      return;
+      if (res.data.role !== "admin") {
+        alert("Unauthorized access");
+        return;
+      }
+
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", "admin");
+      localStorage.setItem("name", res.data.name || "");
+      localStorage.setItem("email", res.data.email || "");
+      window.dispatchEvent(new Event("auth:changed"));
+
+      navigate("/admin-dashboard");
+    } catch (error) {
+      console.error("Admin login error:", error);
+      alert(
+        error.response?.data?.message ||
+          "Unable to sign in as admin right now."
+      );
     }
-
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("role", "admin");
-    localStorage.setItem("name", res.data.name);
-    localStorage.setItem("email", res.data.email);
-
-    navigate("/admin-dashboard");
   };
 
   return (
@@ -44,11 +51,10 @@ export default function AdminLogin() {
     >
       <Card
         sx={{
-          borderTop: "4px solid #7c3aed" // subtle admin accent
+          borderTop: "4px solid #7c3aed"
         }}
       >
         <CardContent sx={{ p: 4 }}>
-          {/* HEADER */}
           <Typography variant="h5" fontWeight={700} mb={1}>
             Admin Access
           </Typography>
@@ -57,7 +63,6 @@ export default function AdminLogin() {
             Sign in to manage and verify lost item reports
           </Typography>
 
-          {/* FORM */}
           <Stack spacing={3}>
             <TextField
               label="Admin Email"
